@@ -153,15 +153,22 @@ export class AuthService {
     accessToken: string;
     refreshToken: string;
   }> {
-    const payload = { sub: userId };
+    // Opsional: Hapus semua refresh token lama untuk user ini (untuk single-session; skip jika ingin multi-device)
+    await this.prisma.refreshToken.deleteMany({
+      where: { userId },
+    });
+
+    // Tambah nonce random untuk pastikan uniqueness JWT
+    const nonce = Math.random().toString(36).substring(2);
+    const payload = { sub: userId, nonce };
 
     const [accessToken, refreshToken] = await Promise.all([
       this.jwtService.signAsync(payload, {
-        expiresIn: 60 * 15,
+        expiresIn: 60 * 15, // 15 menit
       }),
       this.jwtService.signAsync(payload, {
         secret: this.config.get<string>('JWT_REFRESH_SECRET'),
-        expiresIn: parseInt(this.config.get('JWT_ACCESS_EXPIRES_IN', '900'), 10),
+        expiresIn: parseInt(this.config.get('JWT_REFRESH_EXPIRES_IN', '604800'), 10), // Fix: Ganti key ke REFRESH, default 7 hari (604800 detik)
       }),
     ]);
 
