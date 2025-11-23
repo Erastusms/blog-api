@@ -1,0 +1,141 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String    @id @default(uuid())
+  email     String    @unique
+  username  String    @unique
+  password  String
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  posts         Post[]
+  comments      Comment[]
+  postLikes     PostLike[]
+  commentLikes  CommentLike[]
+  refreshTokens RefreshToken[]
+  notifications Notification[]
+
+  @@map("users")
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  userId    String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([token])
+  @@map("refresh_tokens")
+}
+
+model Post {
+  id            String    @id @default(uuid())
+  title         String
+  content       String    @db.Text
+  slug          String    @unique
+  tags          String[]
+  published     Boolean   @default(false)
+  authorId      String
+  likesCount    Int       @default(0)
+  dislikesCount Int       @default(0)
+  commentsCount Int       @default(0)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  deletedAt     DateTime?
+
+  author   User       @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  comments Comment[]
+  likes    PostLike[]
+
+  @@index([authorId])
+  @@index([published, createdAt])
+  @@index([slug])
+  @@map("posts")
+}
+
+model Comment {
+  id            String    @id @default(uuid())
+  content       String    @db.Text
+  postId        String
+  authorId      String
+  parentId      String?
+  depth         Int       @default(0)
+  likesCount    Int       @default(0)
+  dislikesCount Int       @default(0)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  deletedAt     DateTime?
+
+  post          Post           @relation(fields: [postId], references: [id], onDelete: Cascade)
+  author        User           @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  parent        Comment?       @relation("CommentToComment", fields: [parentId], references: [id], onDelete: Cascade)
+  children      Comment[]      @relation("CommentToComment")
+  likes         CommentLike[]
+  notifications Notification[]
+
+  @@index([postId])
+  @@index([authorId])
+  @@index([parentId])
+  @@index([postId, createdAt])
+  @@map("comments")
+}
+
+model PostLike {
+  userId    String
+  postId    String
+  value     Int // 1 for like, -1 for dislike
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@id([userId, postId])
+  @@index([postId])
+  @@map("post_likes")
+}
+
+model CommentLike {
+  userId    String
+  commentId String
+  value     Int // 1 for like, -1 for dislike
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  comment Comment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+
+  @@id([userId, commentId])
+  @@index([commentId])
+  @@map("comment_likes")
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  type      String // 'REPLY', 'LIKE', etc.
+  title     String
+  message   String
+  commentId String?
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  comment Comment? @relation(fields: [commentId], references: [id], onDelete: Cascade)
+
+  @@index([userId, read])
+  @@index([createdAt])
+  @@map("notifications")
+}
