@@ -73,6 +73,7 @@ export class CommentsController {
   }
 
   @Post(':id/like')
+  @HttpCode(200)
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Like or dislike a comment' })

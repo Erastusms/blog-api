@@ -191,6 +191,10 @@ export class AuthService {
   }
 
   private async verifyRefreshToken(token: string): Promise<JwtPayload> {
+    if (!token || token.split('.').length !== 3) {
+      throw new UnauthorizedException('Invalid token format');
+    }
+
     const payload = this.jwtService.verify<JwtPayload>(token, {
       secret: this.config.get<string>('JWT_REFRESH_SECRET'),
     });

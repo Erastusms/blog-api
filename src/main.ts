@@ -1,4 +1,5 @@
 import { NestFactory } from '@nestjs/core';
+import { BadRequestException } from '@nestjs/common';
 import { ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module';
@@ -21,6 +22,19 @@ async function bootstrap(): Promise<void> {
       forbidNonWhitelisted: true,
       transformOptions: {
         enableImplicitConversion: true,
+      },
+      exceptionFactory: (errors) => {
+        const hasNonWhitelisted = errors.some((error) =>
+          Object.values(error.constraints ?? {}).some((msg) => msg.includes('should not exist')),
+        );
+
+        if (hasNonWhitelisted) {
+          return new BadRequestException('unknown property detected (not whitelisted)');
+        }
+
+        const messages = errors.flatMap((error) => Object.values(error.constraints ?? {}));
+
+        return new BadRequestException(messages);
       },
     }),
   );

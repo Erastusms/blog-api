@@ -72,6 +72,22 @@ export class AllExceptionsFilter implements ExceptionFilter {
       };
     }
 
+    // Handle JWT errors
+    // Handle malformed JWT (invalid JSON payload)
+    if (
+      exception instanceof SyntaxError &&
+      typeof exception.message === 'string' &&
+      exception.message.includes('Unexpected token')
+    ) {
+      return {
+        statusCode: HttpStatus.UNAUTHORIZED,
+        message: 'Invalid or malformed token',
+        error: 'UnauthorizedException',
+        timestamp,
+        path,
+      };
+    }
+
     // Handle unknown errors
     this.logger.error('Unhandled exception', exception);
     return {

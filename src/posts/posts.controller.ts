@@ -72,6 +72,7 @@ export class PostsController {
   }
 
   @Post(':slug/like')
+  @HttpCode(200)
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Like or dislike a post' })
